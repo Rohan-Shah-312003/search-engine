@@ -209,7 +209,8 @@
 					const data = await res.json();
 					statsHeader.innerText = `Index contains ${data.num_docs} documents and ${data.num_terms} unique terms.`;
 				} catch (e) {
-					statsHeader.innerText = "Backend offline or index not found.";
+					// statsHeader.innerText = "Backend offline or index not found.";
+					console.log(e);
 				}
 			});
 
