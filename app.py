@@ -68,4 +68,4 @@ if __name__ == "__main__":
     threading.Timer(1, open_browser).start()
     
     # Run the app
-    app.run(debug=True, port=5000)
+    app.run(debug=False, port=5000)
