@@ -1,6 +1,4 @@
 import os
-import threading
-import webbrowser
 from flask import Flask, request, jsonify
 from query_engine import search, _ensure_loaded, _index_cache
 
@@ -60,21 +58,9 @@ def stats():
 
 
 # ─────────────────────────────────────────────
-# MAIN ENTRY POINT
+# MAIN ENTRY POINT (for local development only)
 # ─────────────────────────────────────────────
-
-
-def open_browser():
-    """Opens the browser only once, not on reloads."""
-    if not os.environ.get("WERKZEUG_RUN_MAIN"):
-        webbrowser.open_new("http://127.0.0.1:5000/")
-
 
 if __name__ == "__main__":
     print("🚀 Starting Search Engine Server...")
-
-    # Schedule the browser to open after 1 second
-    threading.Timer(1, open_browser).start()
-
-    # Run the app
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), debug=False)
