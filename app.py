@@ -56,6 +56,10 @@ def stats():
         }
     )
 
+@app.route("/health")
+def health():
+    return jsonify({"status": "ok"}), 200
+
 
 # ─────────────────────────────────────────────
 # MAIN ENTRY POINT (for local development only)
