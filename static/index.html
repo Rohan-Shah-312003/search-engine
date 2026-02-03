@@ -1,396 +1,3 @@
-<!-- <!doctype html>
-<html lang="en">
-	<head>
-		<meta charset="UTF-8" />
-		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-		<title>MiniSearch</title>
-		<style>
-			.ai-summary {
-				background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-				color: white;
-				padding: 24px;
-				border-radius: 12px;
-				margin-bottom: 24px;
-				box-shadow: 0 4px 6px rgba(102, 126, 234, 0.3);
-			}
-
-			.ai-summary h3 {
-				margin: 0 0 12px 0;
-				font-size: 1.1rem;
-				display: flex;
-				align-items: center;
-				gap: 8px;
-			}
-
-			.ai-summary p {
-				margin: 0;
-				line-height: 1.7;
-				opacity: 0.95;
-			}
-			:root {
-				--primary: #3b82f6;
-				--primary-hover: #2563eb;
-				--bg: #fcfcfd;
-				--card-bg: #ffffff;
-				--text-main: #111827;
-				--text-muted: #6b7280;
-				--url-color: #10b981;
-				--border: #f3f4f6;
-				--shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
-				--shadow-hover: 0 10px 15px -3px rgb(0 0 0 / 0.1);
-			}
-
-			body {
-				font-family:
-					"Inter",
-					-apple-system,
-					system-ui,
-					sans-serif;
-				background-color: var(--bg);
-				color: var(--text-main);
-				margin: 0;
-				line-height: 1.5;
-			}
-
-			/* Subtle Top Bar */
-			header {
-				background: var(--card-bg);
-				padding: 12px 40px;
-				font-size: 0.8rem;
-				color: var(--text-muted);
-				border-bottom: 1px solid var(--border);
-				display: flex;
-				justify-content: flex-end;
-				font-weight: 500;
-				letter-spacing: 0.025em;
-			}
-
-			main {
-				max-width: 800px;
-				margin: 0 auto;
-				padding: 60px 20px;
-			}
-
-			.hero-section {
-				text-align: center;
-				margin-bottom: 40px;
-			}
-
-			h1 {
-				font-size: 3rem;
-				font-weight: 800;
-				margin: 0;
-				background: linear-gradient(135deg, #1e40af, #3b82f6);
-				-webkit-background-clip: text;
-				-webkit-text-fill-color: transparent;
-				letter-spacing: -0.05em;
-			}
-
-			/* Polished Search Box */
-			.search-container {
-				position: relative;
-				max-width: 650px;
-				margin: 0 auto 40px;
-			}
-
-			.search-box {
-				display: flex;
-				background: var(--card-bg);
-				border-radius: 99px;
-				padding: 6px;
-				border: 1px solid #d1d5db;
-				transition: all 0.2s ease;
-				box-shadow: var(--shadow);
-			}
-
-			.search-box:focus-within {
-				border-color: var(--primary);
-				box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
-			}
-
-			input[type="text"] {
-				flex: 1;
-				border: none;
-				outline: none;
-				padding: 12px 24px;
-				font-size: 1.1rem;
-				border-radius: 99px;
-				background: transparent;
-			}
-
-			button {
-				background: var(--primary);
-				color: white;
-				border: none;
-				padding: 0 28px;
-				border-radius: 99px;
-				font-weight: 600;
-				cursor: pointer;
-				transition: background 0.2s;
-			}
-
-			button:hover {
-				background: var(--primary-hover);
-			}
-
-			/* Result Cards */
-			#results-area {
-				display: flex;
-				flex-direction: column;
-				gap: 16px;
-			}
-
-			.result-card {
-				background: var(--card-bg);
-				padding: 24px;
-				border-radius: 12px;
-				border: 1px solid var(--border);
-				transition: all 0.2s ease;
-				position: relative;
-				overflow: hidden;
-			}
-
-			.result-card:hover {
-				transform: translateY(-2px);
-				box-shadow: var(--shadow-hover);
-				border-color: #d1d5db;
-			}
-
-			/* Left accent line on hover */
-			.result-card::before {
-				content: "";
-				position: absolute;
-				left: 0;
-				top: 0;
-				height: 100%;
-				width: 4px;
-				background: var(--primary);
-				opacity: 0;
-				transition: opacity 0.2s;
-			}
-
-			.result-card:hover::before {
-				opacity: 1;
-			}
-
-			.result-url {
-				font-size: 0.8rem;
-				color: var(--url-color);
-				text-decoration: none;
-				display: block;
-				margin-bottom: 4px;
-				white-space: nowrap;
-				overflow: hidden;
-				text-overflow: ellipsis;
-			}
-
-			.result-title {
-				color: #2563eb;
-				font-size: 1.35rem;
-				font-weight: 600;
-				text-decoration: none;
-				display: inline-block;
-				margin-bottom: 8px;
-			}
-
-			.result-title:hover {
-				text-decoration: underline;
-			}
-
-			.result-snippet {
-				font-size: 0.95rem;
-				color: #4b5563;
-				line-height: 1.6;
-			}
-
-			/* Highlighting keywords */
-			.result-snippet strong {
-				color: var(--text-main);
-				background: rgba(59, 130, 246, 0.1);
-				padding: 1px 4px;
-				border-radius: 4px;
-				font-weight: 600;
-			}
-
-			.meta-footer {
-				margin-top: 16px;
-				padding-top: 12px;
-				border-top: 1px dashed var(--border);
-				display: flex;
-				gap: 20px;
-				font-size: 0.75rem;
-				color: var(--text-muted);
-				text-transform: uppercase;
-				letter-spacing: 0.05em;
-			}
-		</style>
-	</head>
-	<body>
-		<header id="stats-header">Syncing with index...</header>
-
-		<main>
-			<div class="hero-section">
-				<h1>MiniSearch</h1>
-				<p style="color: var(--text-muted); margin-top: 8px">
-					Lightning fast Wikipedia exploration
-				</p>
-			</div>
-
-			<div class="search-container">
-				<div class="search-box">
-					<input
-						type="text"
-						id="search-input"
-						placeholder="What are you looking for?"
-						autofocus
-					/>
-					<button onclick="performSearch()">Search</button>
-				</div>
-				<div
-					id="results-count"
-					style="
-						margin: 12px 20px;
-						font-size: 0.85rem;
-						color: var(--text-muted);
-						font-weight: 500;
-					"
-				></div>
-			</div>
-
-			<div id="results-area"></div>
-		</main>
-
-		<script>
-			const input = document.getElementById("search-input");
-			const resultsArea = document.getElementById("results-area");
-			const countArea = document.getElementById("results-count");
-			const statsHeader = document.getElementById("stats-header");
-
-			// 1. Load Index Stats on Startup
-			window.addEventListener("DOMContentLoaded", async () => {
-				try {
-					const res = await fetch("/stats");
-					const data = await res.json();
-					statsHeader.innerText = `Index contains ${data.num_docs} documents and ${data.num_terms} unique terms.`;
-				} catch (e) {
-					// statsHeader.innerText = "Backend offline or index not found.";
-					console.log(e);
-				}
-			});
-
-			// 2. Handle "Enter" key
-			input.addEventListener("keypress", (e) => {
-				if (e.key === "Enter") performSearch();
-			});
-
-			// 3. Search Logic
-			async function performSearch() {
-				const query = input.value.trim();
-				if (!query) return;
-
-				// UI Loading State
-				resultsArea.innerHTML = '<div class="state-msg">Searching...</div>';
-				countArea.innerText = "";
-
-				// try {
-				// // Fetch from Flask API
-				// const res = await fetch(`/search?q=${encodeURIComponent(query)}`);
-				// const data = await res.json();
-
-				// // Clear loading
-				// resultsArea.innerHTML = "";
-
-				// // Handle No Results
-				// if (data.count === 0) {
-				// 	resultsArea.innerHTML = `
-				//     <div class="state-msg">
-				//         <p>No results found for <strong>"${data.query}"</strong>.</p>
-				//         <p>Try checking your spelling or using different keywords.</p>
-				//     </div>
-				// `;
-				// 	return;
-				// }
-
-				// const query = input.value.trim();
-				// if (!query) return;
-
-				// resultsArea.innerHTML = '<div class="state-msg">Searching...</div>';
-				// countArea.innerText = "";
-
-				try {
-					const res = await fetch(
-						`/search?q=${encodeURIComponent(query)}&summary=true`,
-					);
-					const data = await res.json();
-
-					resultsArea.innerHTML = "";
-
-					if (data.count === 0) {
-						resultsArea.innerHTML = `
-			             <div class="state-msg">
-			                 <p>No results found for <strong>"${data.query}"</strong>.</p>
-			             </div>
-			         `;
-						return;
-					}
-
-					// Show AI Summary if available
-					if (data.ai_summary) {
-						const summaryDiv = document.createElement("div");
-						summaryDiv.className = "ai-summary";
-						summaryDiv.innerHTML = `
-			             <h3>🤖 AI Overview</h3>
-			             <p>${escapeHtml(data.ai_summary)}</p>
-			         `;
-						resultsArea.appendChild(summaryDiv);
-					}
-
-					countArea.innerText = `Found ${data.count} results`;
-
-					// Render Results
-					countArea.innerText = `Found ${data.count} results`;
-
-					data.results.forEach((result) => {
-						// The backend sends markdown "**text**". We convert that to HTML <strong>text</strong>
-						const safeSnippet = escapeHtml(result.snippet).replace(
-							/\*\*(.*?)\*\*/g,
-							"<strong>$1</strong>",
-						);
-
-						const card = document.createElement("div");
-						card.className = "result-card";
-						card.innerHTML = `
-			                     <a href="${result.url}" class="result-url" target="_blank">${result.url}</a>
-			                     <a href="${result.url}" class="result-title" target="_blank">${result.title}</a>
-			                     <div class="result-snippet">${safeSnippet}</div>
-			                     <div class="meta-info">
-			                         <span>Score: ${result.score}</span>
-			                         <span>Doc ID: ${result.doc_id}</span>
-			                     </div>
-			                 `;
-						resultsArea.appendChild(card);
-					});
-				} catch (e) {
-					console.error(e);
-					resultsArea.innerHTML =
-						'<div class="state-msg" style="color:red">Error connecting to server.</div>';
-				}
-			}
-
-			// Helper to prevent XSS (Cross Site Scripting) since we are injecting HTML
-			function escapeHtml(text) {
-				if (!text) return "";
-				return text
-					.replace(/&/g, "&amp;")
-					.replace(/</g, "&lt;")
-					.replace(/>/g, "&gt;")
-					.replace(/"/g, "&quot;")
-					.replace(/'/g, "&#039;");
-			}
-		</script>
-	</body>
-</html> -->
-
 <!doctype html>
 <html lang="en">
 	<head>
@@ -423,32 +30,31 @@
 				line-height: 1.5;
 			}
 
-			/* Subtle Top Bar */
 			header {
 				background: var(--card-bg);
-				padding: 12px 40px;
-				font-size: 0.8rem;
+				padding: 12px 20px;
+				font-size: 0.75rem;
 				color: var(--text-muted);
 				border-bottom: 1px solid var(--border);
 				display: flex;
-				justify-content: flex-end;
+				justify-content: center; /* Centered for mobile */
+				text-align: center;
 				font-weight: 500;
-				letter-spacing: 0.025em;
 			}
 
 			main {
 				max-width: 800px;
 				margin: 0 auto;
-				padding: 60px 20px;
+				padding: 40px 16px; /* Reduced padding for mobile */
 			}
 
 			.hero-section {
 				text-align: center;
-				margin-bottom: 40px;
+				margin-bottom: 30px;
 			}
 
 			h1 {
-				font-size: 3rem;
+				font-size: 2.5rem; /* Slightly smaller for mobile scaling */
 				font-weight: 800;
 				margin: 0;
 				background: linear-gradient(135deg, #1e40af, #3b82f6);
@@ -457,250 +63,131 @@
 				letter-spacing: -0.05em;
 			}
 
-			/* Polished Search Box */
 			.search-container {
 				position: relative;
 				max-width: 650px;
-				margin: 0 auto 40px;
+				margin: 0 auto 30px;
 			}
 
 			.search-box {
 				display: flex;
 				background: var(--card-bg);
 				border-radius: 99px;
-				padding: 6px;
+				padding: 4px;
 				border: 1px solid #d1d5db;
-				transition: all 0.2s ease;
 				box-shadow: var(--shadow);
-			}
-
-			.search-box:focus-within {
-				border-color: var(--primary);
-				box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
 			}
 
 			input[type="text"] {
 				flex: 1;
 				border: none;
 				outline: none;
-				padding: 12px 24px;
-				font-size: 1.1rem;
+				padding: 10px 16px;
+				font-size: 1rem;
 				border-radius: 99px;
 				background: transparent;
+				min-width: 0; /* Prevents overflow */
 			}
 
 			button {
 				background: var(--primary);
 				color: white;
 				border: none;
-				padding: 0 28px;
+				padding: 0 20px;
 				border-radius: 99px;
 				font-weight: 600;
 				cursor: pointer;
-				transition: background 0.2s;
 			}
 
-			button:hover {
-				background: var(--primary-hover);
-			}
-
-			/* Refined AI Summary Card */
 			.ai-summary {
-				background-color: #f0f7ff; /* Very soft brand blue */
+				background-color: #f0f7ff;
 				border: 1px solid #d0e1fd;
-				padding: 24px;
+				padding: 18px;
 				border-radius: 16px;
-				margin-bottom: 32px;
-				position: relative;
-				box-shadow: 0 4px 20px -5px rgba(59, 130, 246, 0.15);
-				animation: slideIn 0.5s cubic-bezier(0.16, 1, 0.3, 1);
-			}
-
-			.ai-summary h3 {
-				margin: 0 0 10px 0;
-				font-size: 0.9rem;
-				color: #1e40af;
-				text-transform: uppercase;
-				letter-spacing: 0.08em;
-				display: flex;
-				align-items: center;
-				gap: 10px;
-				font-weight: 700;
-			}
-
-			/* The pulse dot for the "AI is live" look */
-			.ai-summary h3::before {
-				content: "";
-				display: inline-block;
-				width: 8px;
-				height: 8px;
-				background-color: #3b82f6;
-				border-radius: 50%;
-				box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+				margin-bottom: 24px;
 			}
 
 			.ai-summary p {
-				margin: 0;
-				line-height: 1.75;
-				color: #1e293b; /* Dark slate for high readability */
-				font-size: 1.05rem;
-				font-weight: 400;
-			}
-
-			/* Sub-footer for the AI card */
-			.ai-badge {
-				display: inline-block;
-				margin-top: 14px;
-				padding: 4px 10px;
-				background: #ffffff;
-				border: 1px solid #d0e1fd;
-				border-radius: 6px;
-				font-size: 0.7rem;
-				color: #64748b;
-				font-weight: 600;
-			}
-
-			@keyframes slideIn {
-				from {
-					opacity: 0;
-					transform: translateY(20px);
-				}
-				to {
-					opacity: 1;
-					transform: translateY(0);
-				}
-			}
-
-			/* Result Cards */
-			#results-area {
-				display: flex;
-				flex-direction: column;
-				gap: 16px;
+				font-size: 0.95rem;
+				line-height: 1.6;
 			}
 
 			.result-card {
 				background: var(--card-bg);
-				padding: 24px;
+				padding: 20px;
 				border-radius: 12px;
 				border: 1px solid var(--border);
-				transition: all 0.2s ease;
-				position: relative;
-				overflow: hidden;
-			}
-
-			.result-card:hover {
-				transform: translateY(-2px);
-				box-shadow: var(--shadow-hover);
-				border-color: #d1d5db;
-			}
-
-			/* Left accent line on hover */
-			.result-card::before {
-				content: "";
-				position: absolute;
-				left: 0;
-				top: 0;
-				height: 100%;
-				width: 4px;
-				background: var(--primary);
-				opacity: 0;
-				transition: opacity 0.2s;
-			}
-
-			.result-card:hover::before {
-				opacity: 1;
-			}
-
-			.result-url {
-				font-size: 0.8rem;
-				color: var(--url-color);
-				text-decoration: none;
-				display: block;
-				margin-bottom: 4px;
-				white-space: nowrap;
-				overflow: hidden;
-				text-overflow: ellipsis;
+				word-wrap: break-word; /* Important for long URLs on mobile */
 			}
 
 			.result-title {
 				color: #2563eb;
-				font-size: 1.35rem;
+				font-size: 1.2rem;
 				font-weight: 600;
 				text-decoration: none;
-				display: inline-block;
-				margin-bottom: 8px;
-			}
-
-			.result-title:hover {
-				text-decoration: underline;
-			}
-
-			.result-snippet {
-				font-size: 0.95rem;
-				color: #4b5563;
-				line-height: 1.6;
-			}
-
-			/* Highlighting keywords */
-			.result-snippet strong {
-				color: var(--text-main);
-				background: rgba(59, 130, 246, 0.1);
-				padding: 1px 4px;
-				border-radius: 4px;
-				font-weight: 600;
 			}
 
 			.meta-footer {
-				margin-top: 16px;
-				padding-top: 12px;
-				border-top: 1px dashed var(--border);
-				display: flex;
-				gap: 20px;
-				font-size: 0.75rem;
-				color: var(--text-muted);
-				text-transform: uppercase;
-				letter-spacing: 0.05em;
+				flex-wrap: wrap; /* Allows scores to wrap on tiny screens */
+				gap: 10px;
 			}
 
-			.state-msg {
-				text-align: center;
-				color: var(--text-muted);
-				padding: 40px 20px;
+			/* --- Mobile Specific Adjustments --- */
+			@media (max-width: 600px) {
+				h1 {
+					font-size: 2rem;
+				}
+
+				main {
+					padding: 20px 12px;
+				}
+
+				.search-box {
+					padding: 2px;
+				}
+
+				input[type="text"] {
+					padding: 12px 14px;
+				}
+
+				button {
+					padding: 0 16px;
+				}
+
+				header {
+					font-size: 0.7rem;
+				}
+
+				.result-card {
+					padding: 16px;
+				}
 			}
 		</style>
 	</head>
 	<body>
 		<header id="stats-header">Syncing with index...</header>
-
 		<main>
 			<div class="hero-section">
 				<h1>MiniSearch</h1>
-				<p style="color: var(--text-muted); margin-top: 8px">
+				<p style="color: var(--text-muted); margin-top: 4px; font-size: 0.9rem">
 					Lightning fast Wikipedia exploration
 				</p>
 			</div>
-
 			<div class="search-container">
 				<div class="search-box">
 					<input
 						type="text"
 						id="search-input"
-						placeholder="What are you looking for?"
+						placeholder="Search Wikipedia..."
 						autofocus
 					/>
 					<button onclick="performSearch()">Search</button>
 				</div>
 				<div
 					id="results-count"
-					style="
-						margin: 12px 20px;
-						font-size: 0.85rem;
-						color: var(--text-muted);
-						font-weight: 500;
-					"
+					style="margin: 8px 16px; font-size: 0.8rem; color: var(--text-muted)"
 				></div>
 			</div>
-
 			<div id="results-area"></div>
 		</main>
 
