@@ -1,112 +1,127 @@
-
 import requests
 from collections import deque
 import json
 import time
-import re
 import logging
 
 # --- CONFIGURATION ---
 API_URL = "https://en.wikipedia.org/w/api.php"
-# Seeds: Using article titles instead of URLs for the API
-SEED_TITLES = ["Artificial intelligence", "Machine learning", "Python (programming language)", "History of the world", "Science"]
-MAX_PAGES = 10000 
-MAX_CHARS_PER_PAGE = 5000  # Space-saving: Truncate long articles
+SEED_TITLES = [
+    "Artificial intelligence",
+    "Machine learning",
+    "Python (programming_language)",
+    "History of the world",
+    "Science",
+]
+MAX_PAGES = 10000
+BATCH_SIZE = 20  # Wikipedia API limit for multi-page queries
+MAX_CHARS_PER_PAGE = 5000
 OUTPUT_FILE = "crawled_data.json"
-USER_AGENT = "MySearchEngineCrawler/1.0 (your_email@example.com)" # PLEASE ADD YOUR EMAIL
+USER_AGENT = "MyFastSearchCrawler/1.0 (your_email@example.com)"
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s"
+)
 logger = logging.getLogger(__name__)
 
-def fetch_wiki_data(title, session):
-    """Fetches text extract and outgoing links via Wikipedia API."""
+
+def fetch_batch_data(titles, session):
+    """Fetches text and links for a batch. Capped at 20 for 'extracts' reliability."""
     params = {
         "action": "query",
         "format": "json",
-        "titles": title,
+        "titles": "|".join(titles),
         "prop": "extracts|links",
-        "explaintext": True,      # Get plain text instead of HTML
-        "exlimit": "max",
-        "pllimit": "max",         # Get as many links as possible (up to 500)
-        "redirects": 1            # Follow redirects automatically
+        "explaintext": True,
+        "exintro": True,  # Gets the intro section (saves massive space!)
+        "exlimit": "20",  # Maximum allowed for extracts
+        "pllimit": "max",
+        "redirects": 1,
     }
-    
+
     try:
-        response = session.get(API_URL, params=params, timeout=10)
+        response = session.get(API_URL, params=params, timeout=15)
         response.raise_for_status()
         data = response.json()
-        
-        pages = data.get("query", {}).get("pages", {})
-        page_id = next(iter(pages))
-        page_data = pages[page_id]
-        
-        if "missing" in page_data:
-            return None
 
-        # Extracting the text and links
-        title = page_data.get("title", "")
-        text = page_data.get("extract", "")[:MAX_CHARS_PER_PAGE]
-        
-        # Filter links to keep only main-namespace articles (ns: 0)
-        links = [l["title"] for l in page_data.get("links", []) if l.get("ns") == 0]
-        
-        return {
-            "title": title,
-            "url": f"https://en.wikipedia.org/wiki/{title.replace(' ', '_')}",
-            "text": text,
-            "links": links
-        }
+        results = []
+        pages = data.get("query", {}).get("pages", {})
+
+        for page_id, page_data in pages.items():
+            # Ensure the page actually has content and isn't a "Missing" page
+            if int(page_id) < 0 or "extract" not in page_data:
+                continue
+
+            title = page_data.get("title", "")
+            results.append(
+                {
+                    "title": title,
+                    "url": f"https://en.wikipedia.org/wiki/{title.replace(' ', '_')}",
+                    "text": page_data.get("extract", "")[:MAX_CHARS_PER_PAGE],
+                    "links": [
+                        l["title"]
+                        for l in page_data.get("links", [])
+                        if l.get("ns") == 0
+                    ],
+                }
+            )
+        return results
     except Exception as e:
-        logger.warning(f"Failed to fetch {title}: {e}")
-        return None
+        logger.warning(f"Batch fetch failed: {e}")
+        return []
+
 
 def crawl(seed_titles, max_pages):
     visited = set()
     queue = deque(seed_titles)
-    pages = []
+    all_pages = []
     session = requests.Session()
     session.headers.update({"User-Agent": USER_AGENT})
 
-    logger.info(f"Starting API crawl | Target: {max_pages} pages")
+    logger.info(f"🚀 Starting Batch Crawl | Target: {max_pages} pages")
 
-    while queue and len(pages) < max_pages:
-        title = queue.popleft()
+    while queue and len(all_pages) < max_pages:
+        # Get up to BATCH_SIZE unvisited titles from the queue
+        current_batch = []
+        while queue and len(current_batch) < BATCH_SIZE:
+            t = queue.popleft()
+            if t not in visited:
+                visited.add(t)
+                current_batch.append(t)
 
-        if title in visited:
-            continue
-        visited.add(title)
-
-        logger.info(f"[{len(pages) + 1}/{max_pages}] Fetching: {title}")
-
-        # API is fast, but let's keep a tiny buffer to be polite
-        # For 200 req/s, you'd remove this, but 0.05 is safer for a local script
-        time.sleep(0.05) 
-        
-        result = fetch_wiki_data(title, session)
-        if not result or not result["text"]:
+        if not current_batch:
             continue
 
-        pages.append({
-            "id": len(pages),
-            **result
-        })
+        logger.info(
+            f"Fetching batch of {len(current_batch)} | Total collected: {len(all_pages)}"
+        )
 
-        # Add discovered article titles to queue
-        for linked_title in result["links"]:
-            if linked_title not in visited:
-                queue.append(linked_title)
+        # Respectful delay between batch calls
+        time.sleep(0.2)
 
-    return pages
+        batch_results = fetch_batch_data(current_batch, session)
 
-def save_pages(pages, filepath):
-    with open(filepath, "w", encoding="utf-8") as f:
-        json.dump(pages, f, ensure_ascii=False, indent=2)
-    logger.info(f"Saved {len(pages)} pages to {filepath}")
+        for res in batch_results:
+            if len(all_pages) >= max_pages:
+                break
+
+            res["id"] = len(all_pages)
+            all_pages.append(res)
+
+            # Add new links to the queue
+            for linked_title in res["links"]:
+                if linked_title not in visited:
+                    queue.append(linked_title)
+
+    return all_pages
+
 
 if __name__ == "__main__":
     start_time = time.time()
-    crawled_data = crawl(SEED_TITLES, MAX_PAGES)
-    save_pages(crawled_data, OUTPUT_FILE)
-    
+    data = crawl(SEED_TITLES, MAX_PAGES)
+
+    with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+
     duration = time.time() - start_time
-    print(f"\nCrawl finished in {duration:.2f} seconds.")
+    logger.info(f"✅ Done! Collected {len(data)} pages in {duration:.2f}s")
