@@ -1,0 +1,291 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>MiniSearch</title>
+		<style>
+			:root {
+				--primary: #2563eb;
+				--bg: #f8f9fa;
+				--card-bg: #ffffff;
+				--text-main: #1f2937;
+				--text-muted: #6b7280;
+				--url-color: #059669;
+				--border: #e5e7eb;
+			}
+
+			body {
+				font-family:
+					-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
+					Arial, sans-serif;
+				background-color: var(--bg);
+				color: var(--text-main);
+				margin: 0;
+				padding: 0;
+				display: flex;
+				flex-direction: column;
+				align-items: center;
+				min-height: 100vh;
+			}
+
+			/* Header / Stats Area */
+			header {
+				width: 100%;
+				background: var(--card-bg);
+				border-bottom: 1px solid var(--border);
+				padding: 10px 20px;
+				text-align: right;
+				font-size: 0.85rem;
+				color: var(--text-muted);
+				box-sizing: border-box;
+			}
+
+			/* Main Search Container */
+			main {
+				width: 100%;
+				max-width: 700px;
+				padding: 40px 20px;
+				display: flex;
+				flex-direction: column;
+				gap: 20px;
+			}
+
+			h1 {
+				font-size: 2.5rem;
+				text-align: center;
+				margin-bottom: 10px;
+				color: var(--text-main);
+				letter-spacing: -0.02em;
+			}
+
+			.logo-icon {
+				color: var(--primary);
+			}
+
+			/* Search Bar */
+			.search-box {
+				display: flex;
+				gap: 10px;
+				box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+				border-radius: 8px;
+				overflow: hidden;
+				border: 1px solid var(--border);
+			}
+
+			input[type="text"] {
+				flex-grow: 1;
+				padding: 15px;
+				font-size: 1.1rem;
+				border: none;
+				outline: none;
+			}
+
+			button {
+				padding: 0 25px;
+				background-color: var(--primary);
+				color: white;
+				border: none;
+				font-weight: 600;
+				cursor: pointer;
+				transition: background 0.2s;
+			}
+
+			button:hover {
+				background-color: #1d4ed8;
+			}
+
+			/* Results Area */
+			#results-area {
+				display: flex;
+				flex-direction: column;
+				gap: 20px;
+				margin-top: 20px;
+			}
+
+			.result-card {
+				background: var(--card-bg);
+				padding: 20px;
+				border-radius: 8px;
+				border: 1px solid var(--border);
+				box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+				transition: transform 0.1s;
+			}
+
+			.result-card:hover {
+				transform: translateY(-2px);
+				box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+			}
+
+			.result-url {
+				font-size: 0.85rem;
+				color: var(--text-muted);
+				margin-bottom: 4px;
+				display: block;
+				text-decoration: none;
+			}
+
+			.result-title {
+				color: #1a0dab;
+				font-size: 1.25rem;
+				text-decoration: none;
+				display: block;
+				margin-bottom: 8px;
+			}
+
+			.result-title:hover {
+				text-decoration: underline;
+			}
+
+			.result-snippet {
+				font-size: 0.95rem;
+				line-height: 1.5;
+				color: #374151;
+			}
+
+			/* Bold text from backend markdown */
+			.result-snippet strong {
+				background-color: #fff3cd; /* Light yellow highlight */
+				font-weight: 700;
+				color: #000;
+				padding: 0 2px;
+				border-radius: 2px;
+			}
+
+			.meta-info {
+				font-size: 0.8rem;
+				color: var(--text-muted);
+				margin-top: 10px;
+				display: flex;
+				justify-content: space-between;
+			}
+
+			/* Loading / Info States */
+			.state-msg {
+				text-align: center;
+				color: var(--text-muted);
+				margin-top: 30px;
+			}
+		</style>
+	</head>
+	<body>
+		<header id="stats-header">Loading index stats...</header>
+
+		<main>
+			<h1><span class="logo-icon">🔍</span> MiniSearch</h1>
+
+			<div class="search-box">
+				<input
+					type="text"
+					id="search-input"
+					placeholder="Try 'neural networks' or 'python AND robotics'..."
+					autofocus
+				/>
+				<button onclick="performSearch()">Search</button>
+			</div>
+
+			<div
+				id="results-count"
+				style="
+					text-align: left;
+					color: #6b7280;
+					font-size: 0.9rem;
+					min-height: 20px;
+				"
+			></div>
+			<div id="results-area"></div>
+		</main>
+
+		<script>
+			const input = document.getElementById("search-input");
+			const resultsArea = document.getElementById("results-area");
+			const countArea = document.getElementById("results-count");
+			const statsHeader = document.getElementById("stats-header");
+
+			// 1. Load Index Stats on Startup
+			window.addEventListener("DOMContentLoaded", async () => {
+				try {
+					const res = await fetch("/stats");
+					const data = await res.json();
+					statsHeader.innerText = `Index contains ${data.num_docs} documents and ${data.num_terms} unique terms.`;
+				} catch (e) {
+					statsHeader.innerText = "Backend offline or index not found.";
+				}
+			});
+
+			// 2. Handle "Enter" key
+			input.addEventListener("keypress", (e) => {
+				if (e.key === "Enter") performSearch();
+			});
+
+			// 3. Search Logic
+			async function performSearch() {
+				const query = input.value.trim();
+				if (!query) return;
+
+				// UI Loading State
+				resultsArea.innerHTML = '<div class="state-msg">Searching...</div>';
+				countArea.innerText = "";
+
+				try {
+					// Fetch from Flask API
+					const res = await fetch(`/search?q=${encodeURIComponent(query)}`);
+					const data = await res.json();
+
+					// Clear loading
+					resultsArea.innerHTML = "";
+
+					// Handle No Results
+					if (data.count === 0) {
+						resultsArea.innerHTML = `
+                        <div class="state-msg">
+                            <p>No results found for <strong>"${data.query}"</strong>.</p>
+                            <p>Try checking your spelling or using different keywords.</p>
+                        </div>
+                    `;
+						return;
+					}
+
+					// Render Results
+					countArea.innerText = `Found ${data.count} results`;
+
+					data.results.forEach((result) => {
+						// The backend sends markdown "**text**". We convert that to HTML <strong>text</strong>
+						const safeSnippet = escapeHtml(result.snippet).replace(
+							/\*\*(.*?)\*\*/g,
+							"<strong>$1</strong>",
+						);
+
+						const card = document.createElement("div");
+						card.className = "result-card";
+						card.innerHTML = `
+                        <a href="${result.url}" class="result-url" target="_blank">${result.url}</a>
+                        <a href="${result.url}" class="result-title" target="_blank">${result.title}</a>
+                        <div class="result-snippet">${safeSnippet}</div>
+                        <div class="meta-info">
+                            <span>Score: ${result.score}</span>
+                            <span>Doc ID: ${result.doc_id}</span>
+                        </div>
+                    `;
+						resultsArea.appendChild(card);
+					});
+				} catch (e) {
+					console.error(e);
+					resultsArea.innerHTML =
+						'<div class="state-msg" style="color:red">Error connecting to server.</div>';
+				}
+			}
+
+			// Helper to prevent XSS (Cross Site Scripting) since we are injecting HTML
+			function escapeHtml(text) {
+				if (!text) return "";
+				return text
+					.replace(/&/g, "&amp;")
+					.replace(/</g, "&lt;")
+					.replace(/>/g, "&gt;")
+					.replace(/"/g, "&quot;")
+					.replace(/'/g, "&#039;");
+			}
+		</script>
+	</body>
+</html>
